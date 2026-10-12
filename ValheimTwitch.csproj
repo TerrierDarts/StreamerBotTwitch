@@ -1,0 +1,145 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net462</TargetFramework>
+    <AssemblyName>ValheimTwitch</AssemblyName>
+    <RootNamespace>ValheimTwitch</RootNamespace>
+    <Version>0.4.0</Version>
+    <LangVersion>9.0</LangVersion>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <!--
+      The Steam install that actually RUNS the game (check
+      Steam\steamapps\libraryfolders.vdf). Must be the live install: compiling
+      against a stale copy of Valheim produces "Method not found" errors at
+      runtime when game signatures have changed between versions.
+      Override on the command line if your game lives elsewhere:
+        dotnet build -c Release -p:GameDir="D:\Steam\steamapps\common\Valheim"
+    -->
+    <GameDir Condition="'$(GameDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Valheim</GameDir>
+    <!--
+      Thunderstore Mod Manager profile used for testing. Provides BepInEx when
+      the game install has no direct BepInEx (the profile's BepInEx is the exact
+      version that runs in-game). Override with -p:ModProfileDir=... as needed.
+    -->
+    <ModProfileDir Condition="'$(ModProfileDir)' == ''">C:\Users\tnpot\AppData\Roaming\Thunderstore Mod Manager\DataFolder\Valheim\profiles\Server</ModProfileDir>
+    <BepInExCoreDir Condition="'$(BepInExCoreDir)' == '' and Exists('$(GameDir)\BepInEx\core\BepInEx.dll')">$(GameDir)\BepInEx\core</BepInExCoreDir>
+    <BepInExCoreDir Condition="'$(BepInExCoreDir)' == '' and Exists('$(ModProfileDir)\BepInEx\core\BepInEx.dll')">$(ModProfileDir)\BepInEx\core</BepInExCoreDir>
+    <!--
+      Valheim ships with managed-code-stripped Unity assemblies (e.g. GUI.Box, GUI.Label
+      and the GUIStyle copy constructor are missing from UnityEngine.IMGUIModule.dll).
+      denikson's BepInExPack ships full unstripped assemblies in unstripped_corlib;
+      compile against those when present and fall back to the game's Managed folder.
+    -->
+    <UnityAssembliesDir Condition="'$(UnityAssembliesDir)' == '' and Exists('$(GameDir)\unstripped_corlib')">$(GameDir)\unstripped_corlib</UnityAssembliesDir>
+    <UnityAssembliesDir Condition="'$(UnityAssembliesDir)' == '' and Exists('$(ModProfileDir)\unstripped_corlib')">$(ModProfileDir)\unstripped_corlib</UnityAssembliesDir>
+    <UnityAssembliesDir Condition="'$(UnityAssembliesDir)' == ''">$(GameDir)\valheim_Data\Managed</UnityAssembliesDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- websocket-sharp: self-contained WebSocket client, works on Unity Mono / net462 -->
+    <PackageReference Include="WebSocketSharp" Version="1.0.3-rc11" />
+    <!-- JSON handling for the Streamer.bot protocol -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <!-- Lets the .NET SDK compile net462 without the full .NET Framework targeting pack -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="BepInEx">
+      <HintPath>$(BepInExCoreDir)\BepInEx.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Harmony (bundled with BepInEx): registration hooks for the portrait build pieces -->
+    <Reference Include="0Harmony">
+      <HintPath>$(BepInExCoreDir)\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Current Valheim builds keep the game code in assembly_valheim.dll
+         (Assembly-CSharp.dll is a ~25 KB stub in this install). -->
+    <Reference Include="assembly_valheim">
+      <HintPath>$(GameDir)\valheim_Data\Managed\assembly_valheim.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="assembly_utils">
+      <HintPath>$(GameDir)\valheim_Data\Managed\assembly_utils.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(UnityAssembliesDir)\UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(UnityAssembliesDir)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Texture2D.LoadImage (avatar images from the Twitch CDN) -->
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>$(UnityAssembliesDir)\UnityEngine.ImageConversionModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Collider (portrait piece collision for placement and hover) -->
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>$(UnityAssembliesDir)\UnityEngine.PhysicsModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- IMGUI (GUILayout) for the portrait viewer picker -->
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>$(UnityAssembliesDir)\UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Input.GetKeyDown (picker escape key) -->
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>$(UnityAssembliesDir)\UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- PlatformUserID / PlatformManager (piece creator metadata on placement) -->
+    <Reference Include="Splatform">
+      <HintPath>$(GameDir)\valheim_Data\Managed\Splatform.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- UIGroupHandler (UI group priority, as XPortal uses) -->
+    <Reference Include="assembly_guiutils">
+      <HintPath>$(GameDir)\valheim_Data\Managed\assembly_guiutils.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Jotunn: GUIManager widgets (woodpanel, text, buttons, scroll view) and input blocking for the picker -->
+    <Reference Include="Jotunn">
+      <HintPath>$(MSBuildProjectDirectory)\lib\Jotunn.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- uGUI + TextMeshPro for the native-style portrait viewer picker -->
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(UnityAssembliesDir)\UnityEngine.UI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>$(UnityAssembliesDir)\UnityEngine.UIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>$(UnityAssembliesDir)\UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>$(UnityAssembliesDir)\Unity.TextMeshPro.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Optional: dotnet build -c Release -p:Deploy=true copies the mod into the game's plugins folder -->
+  <Target Name="DeployToGame" AfterTargets="Build" Condition="'$(Deploy)' == 'true'">
+    <PropertyGroup>
+      <PluginDir>$(GameDir)\BepInEx\plugins\ValheimTwitch</PluginDir>
+    </PropertyGroup>
+    <MakeDir Directories="$(PluginDir)" />
+    <ItemGroup>
+      <DeployFiles Include="$(TargetDir)ValheimTwitch.dll" />
+      <DeployFiles Include="$(TargetDir)WebSocketSharp.dll" />
+      <DeployFiles Include="$(TargetDir)Newtonsoft.Json.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(DeployFiles)" DestinationFolder="$(PluginDir)" />
+    <Message Importance="high" Text="Deployed to $(PluginDir)" />
+  </Target>
+
+</Project>
