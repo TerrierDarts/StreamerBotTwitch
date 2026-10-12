@@ -1,8 +1,11 @@
-# ValheimTwitch
+# Valheim Streamerbot
 
 Bring your Twitch chat into Valheim. Follows, subs, raids and channel point
 rewards show up in your game, and viewers can spawn enemies, start raids and
 request items - all through [Streamer.bot](https://streamer.bot).
+
+Need help or want to share feedback? Join the Discord:
+https://discord.gg/EsBHyan6GQ
 
 ## What it does
 

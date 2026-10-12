@@ -1,6 +1,17 @@
 # Changelog
 
-All notable changes to ValheimTwitch are documented here.
+All notable changes to Valheim Streamerbot are documented here.
+
+## 0.6.0
+
+- Renamed the mod to **Valheim Streamerbot** (the GUID, DLL and config file
+  names are unchanged, so existing settings still load).
+- `item_spawn` and `/request` accept display names as well as prefab names,
+  e.g. `Core Wood` for `RoundLog`, `Fine Wood` for `FineWood`.
+- Added many more spawnable items (see `items.md`).
+- Fixed two mob prefab names: Greydwarf Brute is now `Greydwarf_Elite` and
+  Stone Golem is now `StoneGolem`. They were skipped before.
+- Added `items.md`, `enemies.md` and `raids.md` reference lists.
 
 ## 0.5.0
 

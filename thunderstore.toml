@@ -3,8 +3,8 @@ schemaVersion = "0.0.1"
 
 [package]
 namespace = "CodeWithTD"
-name = "ValheimTwitch"
-versionNumber = "0.5.0"
+name = "ValheimStreamerbot"
+versionNumber = "0.6.0"
 description = "Twitch interacts with Valheim through Streamer.bot: on-screen notifications, mob & item spawning with viewer-named enemies, native raid events, in-game /request item requests, and Twitch viewer portrait build pieces."
 websiteUrl = ""
 containsNsfwContent = false

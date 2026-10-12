@@ -1,6 +1,6 @@
 {
-    "name": "Valheim Streamerbot Connection",
-    "version_number": "0.5.0",
+    "name": "ValheimStreamerbot",
+    "version_number": "0.6.0",
     "website_url": "",
     "description": "Interacts with Valheim through Streamer.bot: on-screen notifications, mob & item spawning with viewer-named enemies, native raid events, in-game /request item requests, and Twitch viewer portrait build pieces.",
     "dependencies": [

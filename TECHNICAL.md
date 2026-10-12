@@ -1,8 +1,9 @@
-# ValheimTwitch - Technical Reference
+# Valheim Streamerbot - Technical Reference
 
 Developer and build details. For the player-facing guide, see [README.md](README.md).
 
-# ValheimTwitch
+# Valheim Streamerbot
+
 
 A BepInEx 5 mod for Valheim that lets Twitch events interact with the game
 through [Streamer.bot](https://streamer.bot).

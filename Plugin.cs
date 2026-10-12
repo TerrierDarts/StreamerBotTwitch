@@ -16,8 +16,8 @@ namespace ValheimTwitch
     public class ValheimTwitchPlugin : BaseUnityPlugin
     {
         public const string PluginGuid = "CodeWithTD.ValheimTwitch";
-        public const string PluginName = "ValheimTwitch";
-        public const string PluginVersion = "0.5.0";
+        public const string PluginName = "Valheim Streamerbot";
+        public const string PluginVersion = "0.6.0";
 
         internal static ManualLogSource Log;
 
@@ -118,7 +118,7 @@ namespace ValheimTwitch
         private void RegisterRequestCommand()
         {
             new Terminal.ConsoleCommand("request",
-                "ValheimTwitch: forward an item request to Streamer.bot (/request <item>)",
+                "Valheim Streamerbot: forward an item request to Streamer.bot (/request <item>)",
                 (Terminal.ConsoleEventArgs args) => HandleRequestCommand(args),
                 optionsFetcher: () => new List<string>(PrefabCatalog.Items.Keys));
         }
