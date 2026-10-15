@@ -4,7 +4,7 @@
     <TargetFramework>net462</TargetFramework>
     <AssemblyName>ValheimTwitch</AssemblyName>
     <RootNamespace>ValheimTwitch</RootNamespace>
-    <Version>0.4.0</Version>
+    <Version>0.7.0</Version>
     <LangVersion>9.0</LangVersion>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <GenerateDependencyFile>false</GenerateDependencyFile>
@@ -135,7 +135,7 @@
     <MakeDir Directories="$(PluginDir)" />
     <ItemGroup>
       <DeployFiles Include="$(TargetDir)ValheimTwitch.dll" />
-      <DeployFiles Include="$(TargetDir)WebSocketSharp.dll" />
+      <DeployFiles Include="$(TargetDir)websocket-sharp.dll" />
       <DeployFiles Include="$(TargetDir)Newtonsoft.Json.dll" />
     </ItemGroup>
     <Copy SourceFiles="@(DeployFiles)" DestinationFolder="$(PluginDir)" />

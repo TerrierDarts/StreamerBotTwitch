@@ -14,6 +14,7 @@ namespace ValheimTwitch.Configuration
         private const string SecNotifications = "Notifications";
         private const string SecSpawning = "Spawning";
         private const string SecRaids = "Raids";
+        private const string SecGameplay = "Gameplay";
         private const string SecRequests = "Requests";
         private const string SecPortraits = "Portraits";
         private const string SecDebug = "Debug";
@@ -36,6 +37,8 @@ namespace ValheimTwitch.Configuration
         public ConfigEntry<ItemDeliveryMethod> ItemDelivery { get; private set; }
 
         public ConfigEntry<bool> RaidsEnabled { get; private set; }
+
+        public ConfigEntry<bool> GameplayEnabled { get; private set; }
 
         public ConfigEntry<bool> RequestsEnabled { get; private set; }
         public ConfigEntry<string> RequestActionName { get; private set; }
@@ -72,6 +75,9 @@ namespace ValheimTwitch.Configuration
 
             RaidsEnabled = file.Bind(SecRaids, "Enabled", true,
                 "Allow triggering native Valheim raid events (raid_start / raid_stop commands). Only ever executed with host/server authority; raids are shared world state, so every player sees them.");
+
+            GameplayEnabled = file.Bind(SecGameplay, "Enabled", true,
+                "Allow gameplay commands: weather_set, weather_reset, enemies_kill, player_heal, player_immortal (and their in-game console equivalents).");
 
             RequestsEnabled = file.Bind(SecRequests, "Enabled", true,
                 "Enable the in-game /request chat command, which forwards item requests to Streamer.bot.");

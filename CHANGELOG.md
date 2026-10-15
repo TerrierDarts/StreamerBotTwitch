@@ -2,6 +2,17 @@
 
 All notable changes to Valheim Streamerbot are documented here.
 
+## 0.7.0
+
+- Added gameplay commands (Streamer.bot actions and in-game console):
+  - `weather_set` / `/weather <name>` forces a weather, `weather_reset` /
+    `/weather reset` returns to the natural cycle.
+  - `enemies_kill` / `/killall` kills all hostile creatures (host only).
+  - `player_heal` / `/heal` restores the local player to full health.
+  - `player_immortal` / `/immortal [on|off]` toggles immortal mode for the
+    local player.
+- New `[Gameplay]` config section to enable or disable these commands.
+
 ## 0.6.0
 
 - Renamed the mod to **Valheim Streamerbot** (the GUID, DLL and config file

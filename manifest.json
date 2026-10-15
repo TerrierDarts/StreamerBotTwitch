@@ -1,8 +1,8 @@
 {
     "name": "ValheimStreamerbot",
-    "version_number": "0.6.0",
+    "version_number": "0.7.0",
     "website_url": "",
-    "description": "Interacts with Valheim through Streamer.bot: on-screen notifications, mob & item spawning with viewer-named enemies, native raid events, in-game /request item requests, and Twitch viewer portrait build pieces.",
+    "description": "Twitch interacts with Valheim through Streamer.bot: alerts, mob and item spawning, raids, weather, kill-all, heal, immortal mode, /request items and viewer portraits.",
     "dependencies": [
         "denikson-BepInExPack_Valheim-5.4.2351",
         "ValheimModding-Jotunn-2.30.2"

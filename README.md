@@ -17,6 +17,10 @@ https://discord.gg/EsBHyan6GQ
 - **Raids:** start a native Valheim raid - randomly, or pick one by name.
 - **`/request` in chat:** players type `/request <item>` in-game and Streamer.bot
   decides what happens (grant the item, charge channel points, ...).
+- **Weather:** force a weather type, or hand control back to the natural cycle.
+- **Kill all enemies:** clear every hostile creature in the world (host only).
+- **Heal and immortal mode:** restore the local player to full health, or
+  make them immortal for a while.
 - **Viewer portraits:** temporarily disabled while the piece is being rebuilt.
 
 ## Requirements
@@ -83,6 +87,14 @@ pattern as above and change the JSON:
 | Give items | `{"action":"item_spawn","item":"Wood","amount":10}` |
 | Start a raid | `{"action":"raid_start"}` or `{"action":"raid_start","raid":"wolves"}` |
 | Stop the raid | `{"action":"raid_stop"}` |
+| Set the weather | `{"action":"weather_set","weather":"Rain"}` |
+| Return to natural weather | `{"action":"weather_reset"}` |
+| Kill all enemies (host only) | `{"action":"enemies_kill"}` |
+| Heal the local player | `{"action":"player_heal"}` |
+| Toggle immortal mode | `{"action":"player_immortal"}` or `{"action":"player_immortal","enabled":true}` |
+
+In-game console equivalents: `/weather <name>`, `/weather reset`, `/killall`,
+`/heal`, `/immortal [on|off]`.
 
 - `viewer` is optional. When set, the spawned creatures are named after the
   viewer ("Andilippi's Troll").
@@ -128,6 +140,7 @@ The main options are in `BepInEx/config/CodeWithTD.ValheimTwitch.cfg`:
 - **`[Notifications]`** - turn the on-screen Twitch alerts on or off.
 - **`[Spawning]`** - how many monsters or items one command can create.
 - **`[Raids]`** - turn raid commands on or off.
+- **`[Gameplay]`** - turn weather, kill-all, heal and immortal commands on or off.
 - **`[Requests]`** - turn `/request` on or off, and choose its action name.
 
 ## Troubleshooting

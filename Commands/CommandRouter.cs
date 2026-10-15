@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using ValheimTwitch.Configuration;
+using ValheimTwitch.Gameplay;
 using ValheimTwitch.Portraits;
 using ValheimTwitch.Spawning;
 using ValheimTwitch.UI;
@@ -37,19 +38,26 @@ namespace ValheimTwitch.Commands
         private readonly Spawner _spawner;
         private readonly RaidManager _raids;
         private readonly PortraitManager _portraits;
+        private readonly GameplayControls _gameplay;
 
         private readonly Dictionary<string, Func<JObject, CommandResult>> _handlers =
             new Dictionary<string, Func<JObject, CommandResult>>(StringComparer.OrdinalIgnoreCase);
 
         public CommandRouter(ModConfig config, NotificationManager notifications, Spawner spawner,
-            RaidManager raids, PortraitManager portraits)
+            RaidManager raids, PortraitManager portraits, GameplayControls gameplay)
         {
             _config = config;
             _notifications = notifications;
             _spawner = spawner;
             _raids = raids;
             _portraits = portraits;
+            _gameplay = gameplay;
 
+            Register("weather_set", HandleWeatherSet);
+            Register("weather_reset", payload => _gameplay.ResetWeather());
+            Register("enemies_kill", payload => _gameplay.KillAllEnemies());
+            Register("player_heal", payload => _gameplay.HealPlayer());
+            Register("player_immortal", HandlePlayerImmortal);
             Register("show_message", HandleShowMessage);
             Register("show_notification", HandleShowNotification);
             Register("item_spawn", HandleItemSpawn);
@@ -203,6 +211,34 @@ namespace ValheimTwitch.Commands
             }
 
             return _raids.StartRaid(raid);
+        }
+
+        // {"action":"weather_set","weather":"Rain"}
+        private CommandResult HandleWeatherSet(JObject payload)
+        {
+            if (!Payload.TryGetString(payload, "weather", true, 50, out string weather, out string error))
+            {
+                return CommandResult.Fail(error);
+            }
+
+            return _gameplay.SetWeather(weather);
+        }
+
+        // {"action":"player_immortal"}                   - toggle
+        // {"action":"player_immortal","enabled":true}    - set explicitly
+        private CommandResult HandlePlayerImmortal(JObject payload)
+        {
+            bool? enabled = null;
+            if (Payload.Has(payload, "enabled"))
+            {
+                if (payload["enabled"].Type != JTokenType.Boolean)
+                {
+                    return CommandResult.Fail("Field 'enabled' must be true or false.");
+                }
+                enabled = payload["enabled"].Value<bool>();
+            }
+
+            return _gameplay.SetImmortal(enabled);
         }
 
         private CommandResult HandleRaidStop(JObject payload)

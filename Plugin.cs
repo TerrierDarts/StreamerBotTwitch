@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 using UnityEngine;
 using ValheimTwitch.Commands;
 using ValheimTwitch.Configuration;
+using ValheimTwitch.Gameplay;
 using ValheimTwitch.Networking;
 using ValheimTwitch.Portraits;
 using ValheimTwitch.Spawning;
@@ -17,7 +18,7 @@ namespace ValheimTwitch
     {
         public const string PluginGuid = "CodeWithTD.ValheimTwitch";
         public const string PluginName = "Valheim Streamerbot";
-        public const string PluginVersion = "0.6.0";
+        public const string PluginVersion = "0.7.0";
 
         internal static ManualLogSource Log;
 
@@ -28,6 +29,7 @@ namespace ValheimTwitch
         private Spawner _spawner;
         private RaidManager _raids;
         private PortraitManager _portraits;
+        private GameplayControls _gameplay;
 
         private void Awake()
         {
@@ -39,9 +41,11 @@ namespace ValheimTwitch
             _spawner = new Spawner(_config);
             _raids = new RaidManager(_config);
             _portraits = new PortraitManager(_config);
-            _router = new CommandRouter(_config, _notifications, _spawner, _raids, _portraits);
+            _gameplay = new GameplayControls(_config);
+            _router = new CommandRouter(_config, _notifications, _spawner, _raids, _portraits, _gameplay);
 
             RegisterRequestCommand();
+            RegisterGameplayCommands();
 
             _client = new StreamerBotClient(_config);
             _client.EventReceived += OnStreamerBotEvent;
@@ -62,6 +66,7 @@ namespace ValheimTwitch
         {
             _client?.Tick();
             MainThreadDispatcher.InvokePending();
+            GameplayControls.Tick();
         }
 
         private void OnDestroy()
@@ -121,6 +126,46 @@ namespace ValheimTwitch
                 "Valheim Streamerbot: forward an item request to Streamer.bot (/request <item>)",
                 (Terminal.ConsoleEventArgs args) => HandleRequestCommand(args),
                 optionsFetcher: () => new List<string>(PrefabCatalog.Items.Keys));
+        }
+
+        // In-game console equivalents of the gameplay actions (host/local use):
+        //   weather <name> | weather reset | killall | heal | immortal [on|off]
+        private void RegisterGameplayCommands()
+        {
+            new Terminal.ConsoleCommand("weather", "Valheim Streamerbot: set weather (/weather <name> | /weather reset)",
+                (Terminal.ConsoleEventArgs args) =>
+                {
+                    if (args.Args.Length < 2)
+                    {
+                        args.Context?.AddString("Usage: /weather <name> | /weather reset");
+                        return;
+                    }
+                    string name = args.Args[1];
+                    CommandResult result = name.Equals("reset", System.StringComparison.OrdinalIgnoreCase)
+                        ? _gameplay.ResetWeather()
+                        : _gameplay.SetWeather(name);
+                    args.Context?.AddString(result.Message);
+                },
+                optionsFetcher: () => new List<string>(_gameplay.WeatherNames) { "reset" });
+
+            new Terminal.ConsoleCommand("killall", "Valheim Streamerbot: kill all hostile creatures (host only)",
+                (Terminal.ConsoleEventArgs args) => args.Context?.AddString(_gameplay.KillAllEnemies().Message));
+
+            new Terminal.ConsoleCommand("heal", "Valheim Streamerbot: restore full health",
+                (Terminal.ConsoleEventArgs args) => args.Context?.AddString(_gameplay.HealPlayer().Message));
+
+            new Terminal.ConsoleCommand("immortal", "Valheim Streamerbot: toggle immortal mode (/immortal [on|off])",
+                (Terminal.ConsoleEventArgs args) =>
+                {
+                    bool? enabled = null;
+                    if (args.Args.Length >= 2)
+                    {
+                        string value = args.Args[1];
+                        enabled = value.Equals("on", System.StringComparison.OrdinalIgnoreCase);
+                    }
+                    args.Context?.AddString(_gameplay.SetImmortal(enabled).Message);
+                },
+                optionsFetcher: () => new List<string> { "on", "off" });
         }
 
         private void HandleRequestCommand(Terminal.ConsoleEventArgs args)
