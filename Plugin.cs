@@ -18,7 +18,7 @@ namespace ValheimTwitch
     {
         public const string PluginGuid = "CodeWithTD.ValheimTwitch";
         public const string PluginName = "Valheim Streamerbot";
-        public const string PluginVersion = "0.7.0";
+        public const string PluginVersion = "0.8.0";
 
         internal static ManualLogSource Log;
 
@@ -130,6 +130,7 @@ namespace ValheimTwitch
 
         // In-game console equivalents of the gameplay actions (host/local use):
         //   weather <name> | weather reset | killall | heal | immortal [on|off]
+        //   tpspawn | dropinv [hand|equipped|all] | killme
         private void RegisterGameplayCommands()
         {
             new Terminal.ConsoleCommand("weather", "Valheim Streamerbot: set weather (/weather <name> | /weather reset)",
@@ -166,6 +167,43 @@ namespace ValheimTwitch
                     args.Context?.AddString(_gameplay.SetImmortal(enabled).Message);
                 },
                 optionsFetcher: () => new List<string> { "on", "off" });
+
+            new Terminal.ConsoleCommand("tpspawn", "Valheim Streamerbot: teleport back to the spawn point",
+                (Terminal.ConsoleEventArgs args) => args.Context?.AddString(_gameplay.TeleportToSpawn().Message));
+
+            new Terminal.ConsoleCommand("dropinv", "Valheim Streamerbot: drop inventory (/dropinv [hand|equipped|all])",
+                (Terminal.ConsoleEventArgs args) =>
+                {
+                    string scopeName = args.Args.Length >= 2 ? args.Args[1] : "all";
+                    if (!System.Enum.TryParse(scopeName, true, out InventoryDropScope scope))
+                    {
+                        args.Context?.AddString("Usage: /dropinv [hand|equipped|all]");
+                        return;
+                    }
+                    args.Context?.AddString(_gameplay.DropInventory(scope).Message);
+                },
+                optionsFetcher: () => new List<string> { "hand", "equipped", "all" });
+
+            new Terminal.ConsoleCommand("killme", "Valheim Streamerbot: kill the local player (immortal must be off)",
+                (Terminal.ConsoleEventArgs args) => args.Context?.AddString(_gameplay.KillPlayer().Message));
+
+            new Terminal.ConsoleCommand("status", "Valheim Streamerbot: apply a status effect (/status <name> [seconds|0])",
+                (Terminal.ConsoleEventArgs args) =>
+                {
+                    if (args.Args.Length < 2)
+                    {
+                        args.Context?.AddString($"Usage: /status <{string.Join("|", GameplayControls.StatusNames)}> [seconds, 0 = until normal]");
+                        return;
+                    }
+                    int seconds = StatusCommand.DefaultDurationSeconds;
+                    if (args.Args.Length >= 3 && !int.TryParse(args.Args[2], out seconds))
+                    {
+                        args.Context?.AddString("Duration must be a number of seconds (0 = until normal).");
+                        return;
+                    }
+                    args.Context?.AddString(_gameplay.ApplyStatus(args.Args[1], Mathf.Clamp(seconds, 0, StatusCommand.MaxDurationSeconds)).Message);
+                },
+                optionsFetcher: () => new List<string>(GameplayControls.StatusNames));
         }
 
         private void HandleRequestCommand(Terminal.ConsoleEventArgs args)

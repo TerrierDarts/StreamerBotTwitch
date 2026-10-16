@@ -92,9 +92,14 @@ pattern as above and change the JSON:
 | Kill all enemies (host only) | `{"action":"enemies_kill"}` |
 | Heal the local player | `{"action":"player_heal"}` |
 | Toggle immortal mode | `{"action":"player_immortal"}` or `{"action":"player_immortal","enabled":true}` |
+| Teleport back to spawn point | `{"action":"player_teleport_spawn"}` |
+| Drop inventory on the ground | `{"action":"player_drop_inventory","scope":"Hand"}` (weapons), `"Equipped"` (weapons + equipped gear), or `"All"` |
+| Kill the local player (immortal must be off) | `{"action":"player_kill"}` |
+| Apply a status effect | `{"action":"player_status","status":"Poison"}` (lasts 10 seconds by default; add `"duration":30` for seconds, or `"duration":0` to keep it on until `"normal"`). Names: `Freezing`, `Poison`, `Tarred`, `Burning`, `Wet`, `Smoked`, `Puke`, `Rested`, `Cozy`, `Shield`, `Harpooned`. `"normal"` removes all status effects. Timed statuses drain 1 HP per second. |
 
 In-game console equivalents: `/weather <name>`, `/weather reset`, `/killall`,
-`/heal`, `/immortal [on|off]`.
+`/heal`, `/immortal [on|off]`, `/tpspawn`, `/dropinv [hand|equipped|all]`,
+`/killme`, `/status <name> [seconds|0]` (see the list above).
 
 - `viewer` is optional. When set, the spawned creatures are named after the
   viewer ("Andilippi's Troll").

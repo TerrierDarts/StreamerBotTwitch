@@ -117,6 +117,278 @@ namespace ValheimTwitch.Gameplay
             return CommandResult.Ok("Healed to full.");
         }
 
+        // player_teleport_spawn: moves the local player back to their spawn point.
+        public CommandResult TeleportToSpawn()
+        {
+            if (!TryGetLocalPlayer(out Player player, out string error))
+            {
+                return CommandResult.Fail(error);
+            }
+
+            Vector3 spawn;
+            PlayerProfile profile = Game.instance != null ? Game.instance.GetPlayerProfile() : null;
+            if (profile != null && profile.HaveCustomSpawnPoint())
+            {
+                spawn = profile.GetCustomSpawnPoint();
+            }
+            else
+            {
+                spawn = Traverse.Create(player).Field<Vector3>("m_spawnPoint").Value;
+            }
+
+            if (ZoneSystem.instance != null)
+            {
+                spawn.y = ZoneSystem.instance.GetGroundHeight(spawn) + 1f;
+            }
+
+            player.TeleportTo(spawn, player.transform.rotation, true);
+            return CommandResult.Ok("Teleported to spawn point.");
+        }
+
+        // player_drop_inventory: drops items on the ground near the local player.
+        // Hand = weapons, Equipped = weapons + equipped gear, All = everything.
+        public CommandResult DropInventory(InventoryDropScope scope)
+        {
+            if (!TryGetLocalPlayer(out Player player, out string error))
+            {
+                return CommandResult.Fail(error);
+            }
+
+            var toDrop = new List<ItemDrop.ItemData>();
+            foreach (ItemDrop.ItemData item in player.GetInventory().GetAllItems())
+            {
+                bool include = true;
+                if (scope == InventoryDropScope.Hand)
+                {
+                    include = item.IsWeapon();
+                }
+                else if (scope == InventoryDropScope.Equipped)
+                {
+                    include = item.IsWeapon() || item.m_equipped;
+                }
+
+                if (include)
+                {
+                    toDrop.Add(item);
+                }
+            }
+
+            if (toDrop.Count == 0)
+            {
+                return CommandResult.Ok($"Nothing to drop ({scope}).");
+            }
+
+            // Items land a few metres ahead, spread in a fan, and auto-pickup is
+            // turned off so they are not grabbed the moment they appear.
+            Vector3 origin = player.transform.position;
+            Vector3 forward = player.transform.forward;
+            forward.y = 0f;
+            int index = 0;
+            foreach (ItemDrop.ItemData item in toDrop)
+            {
+                if (item.m_equipped)
+                {
+                    player.UnequipItem(item, false);
+                }
+                player.GetInventory().RemoveItem(item);
+
+                Vector3 position = origin + Quaternion.Euler(0f, index * 25f - 60f, 0f) * forward * 3f;
+                if (ZoneSystem.instance != null)
+                {
+                    position.y = ZoneSystem.instance.GetGroundHeight(position) + 0.5f;
+                }
+                else
+                {
+                    position.y = origin.y + 0.5f;
+                }
+
+                ItemDrop drop = ItemDrop.DropItem(item, item.m_stack, position, Quaternion.identity);
+                if (drop != null)
+                {
+                    drop.m_autoPickup = false;
+                }
+                index++;
+            }
+
+            return CommandResult.Ok($"Dropped {toDrop.Count} item stacks ({scope}).");
+        }
+
+        // player_kill: kills the local player. Refused while immortal, since the
+        // immortal patch would block the damage.
+        public CommandResult KillPlayer()
+        {
+            if (!TryGetLocalPlayer(out Player player, out string error))
+            {
+                return CommandResult.Fail(error);
+            }
+            if (ImmortalEnabled)
+            {
+                return CommandResult.Fail("Immortal mode is on; disable it first (/immortal off).");
+            }
+
+            var hit = new HitData();
+            hit.m_damage.m_damage = 999999f;
+            hit.m_point = player.GetCenterPoint();
+            hit.m_dir = Vector3.up;
+            player.Damage(hit);
+            return CommandResult.Ok("Player killed.");
+        }
+
+        // player_status: applies a status effect to the local player.
+        // durationSeconds 0 = stays on until "normal". Timed statuses lose 1 HP per second.
+        public CommandResult ApplyStatus(string status, int durationSeconds)
+        {
+            if (!TryGetLocalPlayer(out Player player, out string error))
+            {
+                return CommandResult.Fail(error);
+            }
+
+            if (string.Equals(status, "normal", StringComparison.OrdinalIgnoreCase))
+            {
+                player.GetSEMan().RemoveAllStatusEffects();
+                TimedStatuses.Clear();
+                return CommandResult.Ok("All status effects removed.");
+            }
+
+            if (string.Equals(status, "frozen", StringComparison.OrdinalIgnoreCase))
+            {
+                status = "freezing";
+            }
+
+            if (!StatusCandidates.TryGetValue(status, out string[] candidates))
+            {
+                return CommandResult.Fail($"Unknown status '{status}'. Available: normal, {string.Join(", ", StatusNames)}.");
+            }
+
+            StatusEffect effect = FindStatusEffect(candidates);
+            if (effect == null)
+            {
+                var active = player.GetSEMan().GetStatusEffects().ConvertAll(e => e.name);
+                return CommandResult.Fail($"Status '{status}' was not found in this world. Active on player: {string.Join(", ", active)}. Game effects: {string.Join(", ", GameStatusNames())}.");
+            }
+
+            player.GetSEMan().AddStatusEffect(effect, true);
+            TimedStatuses.RemoveAll(s => s.Effect == effect);
+            TimedStatuses.Add(new TimedStatus
+            {
+                Effect = effect,
+                Expires = durationSeconds > 0 ? Time.time + durationSeconds : -1f,
+                NextTick = Time.time + 1f
+            });
+
+            string length = durationSeconds > 0 ? $" for {durationSeconds}s" : " until normal";
+            return CommandResult.Ok($"Applied {status}{length}.");
+        }
+
+        private sealed class TimedStatus
+        {
+            public StatusEffect Effect;
+            public float Expires;
+            public float NextTick;
+        }
+
+        private static readonly List<TimedStatus> TimedStatuses = new List<TimedStatus>();
+
+        // Removes expired timed statuses and deals 1 HP per second while they last.
+        private static void UpdateTimedStatuses()
+        {
+            if (TimedStatuses.Count == 0)
+            {
+                return;
+            }
+
+            Player player = Player.m_localPlayer;
+            if (player == null)
+            {
+                TimedStatuses.Clear();
+                return;
+            }
+
+            for (int i = TimedStatuses.Count - 1; i >= 0; i--)
+            {
+                TimedStatus status = TimedStatuses[i];
+                if (status.Expires >= 0f && Time.time >= status.Expires)
+                {
+                    player.GetSEMan().RemoveStatusEffect(status.Effect, true);
+                    TimedStatuses.RemoveAt(i);
+                    continue;
+                }
+
+                if (Time.time >= status.NextTick)
+                {
+                    status.NextTick += 1f;
+                    if (!ImmortalEnabled)
+                    {
+                        DrainOneHealth(player);
+                    }
+                }
+            }
+        }
+
+        private static void DrainOneHealth(Player player)
+        {
+            if (player.GetHealth() > 1f)
+            {
+                player.SetHealth(player.GetHealth() - 1f);
+                return;
+            }
+
+            var hit = new HitData();
+            hit.m_damage.m_damage = 999999f;
+            hit.m_point = player.GetCenterPoint();
+            hit.m_dir = Vector3.up;
+            player.Damage(hit);
+        }
+
+        public static IEnumerable<string> StatusNames => StatusCandidates.Keys;
+
+        // Candidate prefab names per status. Matched case-insensitively against
+        // the game's ObjectDB status list; the first hit wins.
+        private static readonly Dictionary<string, string[]> StatusCandidates =
+            new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "freezing", new[] { "Frost", "SE_Frost", "Freezing" } },
+                { "poison", new[] { "Poison", "SE_Poison" } },
+                { "tarred", new[] { "Tared", "Tarred", "SE_Tarred" } },
+                { "burning", new[] { "Burning", "SE_Burning" } },
+                { "wet", new[] { "Wet", "SE_Wet" } },
+                { "smoked", new[] { "Smoked", "SE_Smoke" } },
+                { "puke", new[] { "Puke", "SE_Puke" } },
+                { "rested", new[] { "Rested", "SE_Rested" } },
+                { "cozy", new[] { "Cozy", "SE_Cozy" } },
+                { "shield", new[] { "Shield", "SE_Shield" } },
+                { "harpooned", new[] { "Harpooned", "SE_Harpooned" } }
+            };
+
+        // ObjectDB only registers some status effects, so every loaded
+        // StatusEffect asset is searched too.
+        private static StatusEffect FindStatusEffect(string[] candidates)
+        {
+            StatusEffect[] loaded = Resources.FindObjectsOfTypeAll<StatusEffect>();
+            foreach (string candidate in candidates)
+            {
+                foreach (StatusEffect effect in loaded)
+                {
+                    if (effect != null && string.Equals(effect.name, candidate, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return effect;
+                    }
+                }
+            }
+            return null;
+        }
+
+        private static IEnumerable<string> GameStatusNames()
+        {
+            foreach (StatusEffect effect in Resources.FindObjectsOfTypeAll<StatusEffect>())
+            {
+                if (effect != null && effect.name.StartsWith("SE_", StringComparison.OrdinalIgnoreCase))
+                {
+                    yield return effect.name;
+                }
+            }
+        }
+
         // player_immortal: enable/disable (or toggle when no value is given).
         public CommandResult SetImmortal(bool? enabled)
         {
@@ -133,6 +405,8 @@ namespace ValheimTwitch.Gameplay
         // while immortal, even if a damage path bypasses the Harmony patch.
         public static void Tick()
         {
+            UpdateTimedStatuses();
+
             if (!ImmortalEnabled)
             {
                 return;
@@ -155,6 +429,24 @@ namespace ValheimTwitch.Gameplay
             if (EnvMan.instance == null)
             {
                 error = "No world is loaded.";
+                return false;
+            }
+            error = null;
+            return true;
+        }
+
+        private bool TryGetLocalPlayer(out Player player, out string error)
+        {
+            player = null;
+            if (!_config.GameplayEnabled.Value)
+            {
+                error = "Gameplay commands are disabled in the configuration.";
+                return false;
+            }
+            player = Player.m_localPlayer;
+            if (player == null)
+            {
+                error = "No local player yet.";
                 return false;
             }
             error = null;

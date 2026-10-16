@@ -29,7 +29,7 @@ $ErrorActionPreference = "Stop"
 
 # Keep these in sync with Plugin.cs (PluginVersion) and manifest.json (version_number).
 $Author = "CodeWithTD"
-$Version = "0.7.0"
+$Version = "0.8.0"
 
 $Root = $PSScriptRoot
 $BuildDir = Join-Path $Root "bin\Release"

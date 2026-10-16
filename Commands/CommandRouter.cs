@@ -58,6 +58,10 @@ namespace ValheimTwitch.Commands
             Register("enemies_kill", payload => _gameplay.KillAllEnemies());
             Register("player_heal", payload => _gameplay.HealPlayer());
             Register("player_immortal", HandlePlayerImmortal);
+            Register("player_teleport_spawn", payload => _gameplay.TeleportToSpawn());
+            Register("player_drop_inventory", HandlePlayerDropInventory);
+            Register("player_kill", payload => _gameplay.KillPlayer());
+            Register("player_status", HandlePlayerStatus);
             Register("show_message", HandleShowMessage);
             Register("show_notification", HandleShowNotification);
             Register("item_spawn", HandleItemSpawn);
@@ -222,6 +226,28 @@ namespace ValheimTwitch.Commands
             }
 
             return _gameplay.SetWeather(weather);
+        }
+
+        // {"action":"player_drop_inventory","scope":"Hand"}
+        private CommandResult HandlePlayerDropInventory(JObject payload)
+        {
+            if (!DropInventoryCommand.TryParse(payload, out DropInventoryCommand command, out string error))
+            {
+                return CommandResult.Fail(error);
+            }
+
+            return _gameplay.DropInventory(command.Scope);
+        }
+
+        // {"action":"player_status","status":"Poison"}
+        private CommandResult HandlePlayerStatus(JObject payload)
+        {
+            if (!StatusCommand.TryParse(payload, out StatusCommand command, out string error))
+            {
+                return CommandResult.Fail(error);
+            }
+
+            return _gameplay.ApplyStatus(command.Status, command.DurationSeconds);
         }
 
         // {"action":"player_immortal"}                   - toggle

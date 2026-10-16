@@ -190,6 +190,72 @@ namespace ValheimTwitch.Commands
         }
     }
 
+    public enum InventoryDropScope
+    {
+        Hand,
+        Equipped,
+        All
+    }
+
+    // {"action":"player_drop_inventory","scope":"Hand"}      - weapons only
+    // {"action":"player_drop_inventory","scope":"Equipped"}  - weapons + equipped armour
+    // {"action":"player_drop_inventory","scope":"All"}       - everything
+    public sealed class DropInventoryCommand
+    {
+        public InventoryDropScope Scope;
+
+        public static bool TryParse(JObject p, out DropInventoryCommand command, out string error)
+        {
+            command = null;
+
+            if (!Payload.TryGetString(p, "scope", true, 20, out string scopeName, out error))
+            {
+                return false;
+            }
+
+            if (!Enum.TryParse(scopeName, true, out InventoryDropScope scope))
+            {
+                error = $"Unknown scope '{scopeName}' (expected Hand, Equipped or All).";
+                return false;
+            }
+
+            command = new DropInventoryCommand { Scope = scope };
+            return true;
+        }
+    }
+
+    // {"action":"player_status","status":"Freezing"}                  - 10 seconds
+    // {"action":"player_status","status":"Poison","duration":30}      - 30 seconds
+    // {"action":"player_status","status":"Poison","duration":0}       - until "normal"
+    public sealed class StatusCommand
+    {
+        public const int DefaultDurationSeconds = 10;
+        public const int MaxDurationSeconds = 3600;
+
+        public string Status;
+        public int DurationSeconds;
+
+        public static bool TryParse(JObject p, out StatusCommand command, out string error)
+        {
+            command = null;
+
+            if (!Payload.TryGetString(p, "status", true, 30, out string status, out error))
+            {
+                return false;
+            }
+
+            int duration = DefaultDurationSeconds;
+            if (Payload.Has(p, "duration")
+                && !Payload.TryGetInt(p, "duration", 0, MaxDurationSeconds, out duration, out error))
+            {
+                return false;
+            }
+
+            command = new StatusCommand { Status = status, DurationSeconds = duration };
+            return true;
+        }
+    }
+
     // {"action":"show_message","title":"RAID INCOMING!","message":"Andilippi has raided with 42 viewers!"}
     public sealed class ShowMessageCommand
     {

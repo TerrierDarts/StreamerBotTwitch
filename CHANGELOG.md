@@ -2,6 +2,22 @@
 
 All notable changes to Valheim Streamerbot are documented here.
 
+## 0.8.0
+
+- Player commands (Streamer.bot actions and in-game console):
+  - `player_teleport_spawn` / `/tpspawn` teleports the local player to their bed
+    spawn point (falls back to the default spawn when no bed is set).
+  - `player_drop_inventory` / `/dropinv [hand|equipped|all]` drops items a few
+    metres away with auto-pickup off: `Hand` = weapons, `Equipped` = weapons plus
+    equipped gear, `All` = everything.
+  - `player_kill` / `/killme` kills the local player (refused while immortal).
+  - `player_status` / `/status <name> [seconds|0]` applies a status effect to the
+    local player: freezing (or frozen), poison, tarred, burning, wet, smoked,
+    puke, rested, cozy, shield, harpooned. Lasts 10 seconds by default; a
+    `duration` (seconds, 0 = until `normal`) overrides it. Timed statuses drain
+    1 HP per second.
+  - `player_status` with `"normal"` removes all status effects.
+
 ## 0.7.0
 
 - Added gameplay commands (Streamer.bot actions and in-game console):
@@ -11,6 +27,17 @@ All notable changes to Valheim Streamerbot are documented here.
   - `player_heal` / `/heal` restores the local player to full health.
   - `player_immortal` / `/immortal [on|off]` toggles immortal mode for the
     local player.
+  - `player_teleport_spawn` / `/tpspawn` teleports the local player back to
+    their spawn point.
+  - `player_drop_inventory` / `/dropinv [hand|equipped|all]` drops items on the
+    ground: `Hand` = weapons, `Equipped` = weapons + equipped gear, `All` =
+    everything.
+  - `player_kill` / `/killme` kills the local player (refused while immortal).
+  - `player_status` / `/status <name>` applies a status effect to the local
+    player: freezing, poison, tarred, burning, wet, smoked, puke, rested, cozy,
+    shield, harpooned. Lasts 10 seconds by default; `duration` (seconds, 0 =
+    until `normal`) overrides it. Timed statuses drain 1 HP per second.
+    `normal` removes all status effects from the local player.
 - New `[Gameplay]` config section to enable or disable these commands.
 
 ## 0.6.0

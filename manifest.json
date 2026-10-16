@@ -1,6 +1,6 @@
 {
     "name": "ValheimStreamerbot",
-    "version_number": "0.7.0",
+    "version_number": "0.8.0",
     "website_url": "",
     "description": "Twitch interacts with Valheim through Streamer.bot: alerts, mob and item spawning, raids, weather, kill-all, heal, immortal mode, /request items and viewer portraits.",
     "dependencies": [

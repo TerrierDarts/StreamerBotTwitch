@@ -77,7 +77,7 @@ namespace ValheimTwitch.Configuration
                 "Allow triggering native Valheim raid events (raid_start / raid_stop commands). Only ever executed with host/server authority; raids are shared world state, so every player sees them.");
 
             GameplayEnabled = file.Bind(SecGameplay, "Enabled", true,
-                "Allow gameplay commands: weather_set, weather_reset, enemies_kill, player_heal, player_immortal (and their in-game console equivalents).");
+                "Allow gameplay commands: weather_set, weather_reset, enemies_kill, player_heal, player_immortal, player_teleport_spawn, player_drop_inventory, player_kill, player_status (and their in-game console equivalents).");
 
             RequestsEnabled = file.Bind(SecRequests, "Enabled", true,
                 "Enable the in-game /request chat command, which forwards item requests to Streamer.bot.");
